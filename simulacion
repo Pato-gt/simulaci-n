@@ -1,0 +1,57 @@
+#Ejercicio 5 Programacion y simulacion
+#Patrick Ordonez 131062
+
+from random import *
+from SimPy.Simulation import *
+
+raminicial = 100
+
+class Proceso(Process):
+    def __init__(self,id):
+        Process.__init__(self)
+        self.id= id
+        global raminicial
+
+    def procesoIn(self,llega,ram,instrucciones,velocidad):
+        yield hold,self,llega
+        tiemo = now()
+        contador = velocidad
+        global raminicial
+        print "%5.1f %s llega con memoria de %f" %(now(),self.id,ram)
+        yield request,self,RAM
+        if raminicial>ram:
+            print "%5.1f %s esta en memoria" %(now(),self.id)
+            raminicial -=ram
+            print "%f " %(raminicial)
+            yield request,self,CPU
+            yield hold,self,1
+            print "%5.f %s libera ram"%(now(),self.id)
+            yield release,self,RAM
+            raminicial +=ram
+            total = now()+(tiemo*(instrucciones%3))
+            wt.observe(total)
+            yield release,self,CPU
+
+
+wt=Monitor()
+initialize()
+nprocesos = 200
+CPU= Resource(capacity=1,qType=FIFO)
+RAM= Resource(capacity=100,qType=FIFO)
+random.seed(10)
+raminicial = 100
+anterior = 0
+
+def hacer(aumento,cual):
+    if cual == 0:
+        raminicial = raminicial - aumento
+    if cual == 1:
+        raminicial = raminicial + aumento
+
+
+for i in range(nprocesos):
+        p = Proceso(id="Proceso "+ str(i))
+        activate(p,p.procesoIn(llega=expovariate(1.0/10),ram=randint(1,10),instrucciones=uniform(1,10),velocidad= 3))
+simulate(until=100)
+
+print "Tiempo total en la U: \tmean = %5.1f, \n\t\tvariance=%2d"%(wt.mean(),wt.var())
